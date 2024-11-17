@@ -13,7 +13,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YourUsername/npm-word-game.git"
+    "url": "https://github.com/StevenB96/npm-word-game.git"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
