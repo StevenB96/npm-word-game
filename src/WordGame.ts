@@ -1,25 +1,56 @@
-import { readFile, promises } from "fs";
+import { promises } from "fs";
 
 type CountMap = { [key: string]: number };
 
 class WordGame {
-    private randomStringLength: number = 5;
+    /* 
+    Define the length and variety of formable words.
+    randomStringLength
+    minWordLength
+    */
+    private randomStringLength: number = 7;
+    private minWordLength: number = 3;
+    /* 
+    Define the number of formable words required for the game.
+    wordCountRange
+    */
+    private wordCountRange: number[] = [3, 5];
     private wordList: string[] | null = null;
+    /* 
+    Properties that are populated by methods.
+    */
     public randomString: string | null = null;
     public formableWordsList: string[] = [];
     public formableWordsCount: number = 0;
     public foundWordsList: string[] = [];
     public score: number = 0;
+    private initCallback: () => void;
+    private recursionLimit: number = 10;
+    private recursions: number = 0;
 
-    constructor() {
+    constructor(initCallback: () => void) {
+        this.initCallback = initCallback;
         this.init();
     }
 
     private async init() {
         try {
-            this.wordList = await this.readLinesFromFile('./wordlist.txt');
-            this.generateRandomString();
-            this.generateformableWordsList();
+            this.recursions += 1;
+
+            await this.readLinesFromFile('./wordlist.txt');
+            await this.generateRandomString();
+            await this.generateFormableWordsList();
+
+            const areEnough = this.wordCountRange[0] < this.formableWordsCount;
+            const areNotTooMany = this.formableWordsCount < this.wordCountRange[1];
+            const recursionLimitNotExceeded = this.recursions < this.recursionLimit;
+
+            if ((!areEnough || !areNotTooMany) && recursionLimitNotExceeded) {
+                await this.init();
+                return;
+            }
+
+            this.initCallback();
         } catch (error) {
             console.error(error);
         }
@@ -33,29 +64,33 @@ class WordGame {
         }
     }
 
-    private generateRandomString(): void {
+    private async generateRandomString(): Promise<void> {
         const characters = 'abcdefghijklmnopqrstuvwxyz';
         let result = '';
-    
+
         for (let i = 0; i < this.randomStringLength; i++) {
             const randomIndex = Math.floor(Math.random() * characters.length);
             result += characters[randomIndex];
         }
-    
+
         this.randomString = result;
     }
 
     private countOccurrences(str: string): CountMap {
         const countMap: CountMap = {};
-        
+
         for (const char of str) {
             countMap[char] = (countMap[char] || 0) + 1;
         }
-        
+
         return countMap;
     }
 
     private canFormWord(word: string, randomStringCountMap: CountMap): boolean {
+        /* 
+        Check if a word can be formed from the random string. 
+        Loop over each letter and compare the number of letters avaliable.
+        */
         const wordCountMap: CountMap = this.countOccurrences(word);
         for (const letter in wordCountMap) {
             const count = wordCountMap[letter];
@@ -68,21 +103,22 @@ class WordGame {
         return true;
     }
 
-    private generateformableWordsList(): void {
+    private async generateFormableWordsList(): Promise<void> {
         const randomStringCountMap: CountMap = this.countOccurrences(this.randomString || "");
 
         if (this.wordList) {
             this.formableWordsList = this.wordList.filter((word: string) => {
-                return this.canFormWord(word, randomStringCountMap);
+                const isWordLongEnough = word.length >= this.minWordLength;
+                return isWordLongEnough && this.canFormWord(word, randomStringCountMap);
             });
-            this.formableWordsCount = this.formableWordsList.length;            
+            this.formableWordsCount = this.formableWordsList.length;
         }
     }
 
-    private async readLinesFromFile(filePath: string): Promise<string[]> {
+    private async readLinesFromFile(filePath: string): Promise<void> {
         try {
             const data: string = await promises.readFile(filePath, 'utf8');
-            return data.split('\n');
+            this.wordList = data.split('\n');
         } catch (err) {
             console.error('Error reading file:', err);
             throw err;
@@ -91,7 +127,7 @@ class WordGame {
 }
 
 if (require.main === module) {
-    const wordGame = new WordGame();
+    // const wordGame = new WordGame(() => {});
 }
 
 export default WordGame;

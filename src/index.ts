@@ -12,17 +12,13 @@ app.set('views', './views');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// In-memory array to store the wordGame
-const wordGame = new WordGame();
-
 app.get('/', (req: Request, res: Response) => {
     /* 
     Request a simple web page. 
     Logic handled by the Word Game object.
     */
-
-    res.render('index', { 
-        randomString: wordGame.randomString, 
+    res.render('index', {
+        randomString: wordGame.randomString,
         score: wordGame.score,
         formableWordsCount: wordGame.formableWordsCount,
         foundWordsList: wordGame.foundWordsList,
@@ -40,7 +36,17 @@ app.post('/submit', (req: Request, res: Response) => {
     res.redirect('/');
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
-});
+// Define the async function to initialise the server
+const initServer = () => {
+    try {
+        // Start the server
+        app.listen(port, () => {
+            console.log(`Server is running on http://localhost:${port}`);
+        });
+    } catch (error) {
+        console.error('Error starting the server:', error);
+    }
+};
+
+// In-memory array to store the wordGame
+const wordGame = new WordGame(initServer);
